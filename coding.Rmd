@@ -1,0 +1,445 @@
+---
+title: "ma380-xu-jie-paper-2"
+author: "Jie Xu"
+date: "2022-11-27"
+output: html_document
+---
+```{r,echo=FALSE}
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+library(statmod)
+library(MASS)
+```
+1. Title and Author
+
+2. Introduction
+• Orientation material
+• Key aspects of your report
+• Plan for the rest of the report
+
+3. Data Characteristics
+• Where did the data come from?
+• Observational or designed experiment?
+• Representative of the population?
+• Summary statistics (do not use summary())
+• Some informative graphs or tables
+• Is there a relationship between the response variable and the individual predictor variables?
+
+4. Model Selection & Interpretation
+• Outline of the section
+• Statement of the recommended model
+• Interpretation of the model
+• Basic justification of the model
+• Outline of thought process that would lead to this model
+• Discussion of alternative models
+• Highlights of the diagnostic analysis
+• Actual versus Expected comparison showing whether or not your model fits well
+
+5. Conclusions
+• Rehash your main results
+• Limitations of your analysis
+• Ideas about how to improve your analysis
+
+
+# Introduction
+
+## Orientation material
+In a person's life, marriage is one of the most important factors. The harmony of the relationship between husband and wife in marriage will directly affect the quality of life of the individual. In this era of extraordinary sophistication and versatility, Affair is the ultimate violation of marriage and relationship killer. But the reasons for the occurrence of affairs in marriage and the motivation of people have always been a confusing thing: cheating is by no means a simple matter. There are many reasons why people cheat, and the patterns are much more complex than common stereotypes suggest, such as psychological factors that we often overlook.
+
+## Key aspects of your report
+To investigate the factors might influence the number of affairs, we will use the count models such as poisson models and negative binomial models within the Generalized Linear Modeling Framework with a data set that have 601 observations and 20 variables including response variables and predictors that are all likely to be related to the response-number of affairs. 
+
+## Plan for the rest of the report
+The remainder of the report will provide all the important information for the investigation. The outline of the remainder is as follows. In Section 2, some important introduction about the data will be presented such as the source of the data, data characteristic and initial exploration on the relationship between the number of affairs and factors. 
+In section 3, we will have some discussion on the recommended model. Some interpretation and rationales relate to the recommended model will also be presented. In addition, we will also have a diagnostic analysis on the model recommended as well as investigating if the selected model fits our data well. Based on the first three sections, the last section will focus on making some conclusions and proposing some recommendations on improvements of the model.
+
+
+# Data Characteristics
+
+## Where did the data come from? 
+The data of the data set is from a survey called Psychology Today collected by an economist Ray C. Fair in 1970s. The data set contains 601 observations in total, and it has 20 variables. The response variable is "naffairs", representing the number of affairs. And there are 18 predictors such as age(age midpoint), male(indicator for male or not), educ(education midpoint), occup(ocupation), yrsmarr(Years married midpoint). 
+
+##Representative of the population?
+We need to pay attention that although the data set is big enough for us to research but the data set is not very representative. Since the 601 observations are the survey responses that are complete from the 2000 surveys that are coded onto tape. And the 2000 surveys responses are selected from the 20,000 surveys including completed or not completed. During the selection and collection process, there might be some regularity and lack of randomness.
+
+## Observational or designed experiment?
+The test we will conduct in this paper is a observational experiment because we already had the response(result) of their affair situation, and we only aim at determining which predictor variables may help us determine the target variable and investigating how different predictor variables are related to each other and how they affect the prediction of the target variable.
+
+## Summary statistics
+To have a general understanding on the numerical(quantitative) data, a table is created below that shows the basic information about nine numerical variables, and they are number of affairs, age midpoint, imputed age, years of education, status of occupation position, degree of religion, years of married, and rate of marriage from top to bottom.Summary statistics includes mean, median, standard deviation, min value, 25% percentile value, 75% percentile value and the max value. 
+
+In the summary table, all the statistics seem reasonable, but we should pay attention to the numerical value of the variable: some variables such as age, educ, kids, yrsmarr are numerical variables that directly reveals the actual number. For example, the minimum of age is 17.5 represents the actual minimum age is 17.5; Other numerical values of variables such as occup, relig,and ratemarr are coded value for categorical variable which represents level of status. For instance,  the minimum of ratemarr is 1 indicates someone are unhappy with their marriage. The higher the rate, the happier the person is in his/her marriage. I will demonstrate one variable in the table - age - as an example to help understand the statistics summary table. In our data, the average age is 32.5, median age is 32, the standard deviation (a measure of how dispersed the data is in relation to the mean) is 9.3 which is not that large, minimum of age is 17.5, maximum of age is 57,  the 25 percentile of age is 27, and the 75 percentile of age is 37. 
+
+```{r,echo=FALSE}
+affairs <- read.csv("naffairs.csv")
+data.char <- function(x) {
+  ans <- c(Mean = mean(x),
+           Median = median(x),
+           Std.Dev = sd(x),
+           Min = min(x),
+           percentile = quantile(x,probs= c(.25)),
+           percentile = quantile(x,probs= c(.75)),
+           Max = max(x))
+  return(ans)
+}
+round(t(apply(affairs[,c(2,4,6,8,10,13,15,18)], 2, data.char)), 1)
+```
+I also used boxplots to visualize categorical predictors, but the effect is not very ideal. For example, the plot below is the boxplot of Religion level vs. Number of affairs, which visualize the statistics distributions for different religion levels. We can observe that the difference of outliers, mean value, 25 percentile value are quite similar between the five different levels. But the extreme value (anti religious and very religious ) have great difference. The performance of boxplots of categorical variables such as rate of marriage and education levels in the data set is very similar to this boxplot. We might consider these variables as useful predictors for number of affairs but still needs further investigation.
+```{r,echo=FALSE}
+boxplot(naffairs~religious,data=affairs, main="Boxplot of Religion level vs. Number of affairs",
+   xlab="Levels of religion", ylab="Number of affairs")
+```
+
+
+## Is there a relationship between the response variable and the individual predictor variables?
+To investigate whether there is a relationship between the response variable and individual predictors, I created tables for individual relationship including the information of mean and variance of each categories within the predictor variable. According to the tables, there are four predictor variables are more likely to have relationship with response variabble, which are education level, kids, religion, and rate of marriage. I will show two tables of predictors that are more likely to have relationship with the response variable: religion and kids. 
+
+```{r,echo=FALSE,results='hide'}
+### age vs. number of affairs
+#There is no significant indicating age has relationship with number of affairs. However,three age groups(20-24,25-29,55+) has the #least average number of affairs and least number of affairs variance, and the reason might be people's age 20-29 are during the #time of newly-married, and it is also reasonable that people over 55 years old are the group of people least likely to have #affairs because of the physical degradation that occurs with age.
+affairs %>%
+  group_by(age.cat) %>%
+  summarize(mean.affair = mean(naffairs),
+            var.affair = var(naffairs)) %>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+
+```{r,echo=FALSE,results='hide'}
+# ### male vs. number of affairs
+# There is no big difference of number of affairs between male and female for number of affairs because the mean number of affairs and variance number of affairs between gender do not have great difference: both are around 1.4(mean) and 11(variance). So, we will not consider this predictor into our model.
+affairs %>%
+  group_by(male) %>%
+  summarize(mean.affair = mean(naffairs),
+            var.affair = var(naffairs))%>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+
+```{r,results='hide',echo=FALSE}
+# ### edu.cat vs. number of affairs
+# According to the summary table, we can indicate that the the group of people who only graduate from middle school have the greatest value of affair number and it also have the greatest variance of affair number, and people who only graduate from high school have the mean and variance number of affairs in the second place. We might assume that the fewer education experience the people obtained, the more likely the people will have more affairs, but we need to investigate more to make this conclusion.
+affairs %>%
+  group_by(edu.cat) %>%
+  summarize(mean.affair = mean(naffairs),
+            var.affair = var(naffairs))%>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+```{r,results='hide',echo=FALSE}
+### occup.cat vs. number of affairs
+# There is no significant difference between different groups of occupation, except the group of people who are semi-skilled, which might be a bias.
+affairs %>%
+  group_by(occup.cat) %>%
+  summarize(mean.affair = mean(naffairs),
+            var.affair = var(naffairs))%>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+### kids vs. number of affairs
+According to the summary table, the people who have kids have higher mean number of affairs: the mean number of affairs is about 0.9 for people who have no kids, and 1.7 for people who has kids. So, we might consider this predictor in our model to see whether the predictor have kids or not have relationship with number of affairs.
+```{r,echo=FALSE}
+affairs %>%
+  group_by(kids) %>%
+  summarize(mean.affair = mean(naffairs),
+            var.affair = var(naffairs))%>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+### religious vs. number of affairs
+In this table, the higher is number of relig, the more religious the people is. Generally, we can see that the people who are more religious have lower mean number of affairs than the people who are not religious at all or some-what religious, and people are more religious have lower variance of number of affairs as well. So, we will also consider this predictor might be useful to predict the response variable.
+```{r,echo=FALSE}
+affairs %>%
+  group_by(relig) %>%
+  summarize(mean.affair = mean(naffairs),
+            var.affair = var(naffairs))%>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+
+```{r,results='hide',echo=FALSE}
+### yrsmarr.cat vs. number of affairs
+# We will not consider this predictor as a useful predictor becasue there is no significant trend between the years of marriage and the number of affairs but the group of people have over 12 years marriage have the significantly highest mean number of affairs compared to others.
+affairs %>%
+  group_by(yrsmarr.cat) %>%
+  summarize(mean.affair = mean(naffairs),
+            var.affair = var(naffairs))%>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+
+```{r,results='hide',echo=FALSE}
+### rate.marr.cat vs. number of affairs
+# According to the table, we can see that with the rate of marriage increase, the mean number of affairs decrease, which might indicate that the happier the people in the marriage the less likely the people will have affairs. So, I will consider this predictor might be useful to predict response variable.
+affairs %>%
+  group_by(rate.marr.cat) %>%
+  summarize(mean.affair = mean(naffairs),
+            var.affair = var(naffairs))%>%
+  mutate(across(where(is.numeric), ~ round(., 3)))
+```
+
+
+# Model Selection & Interpretation
+## Outline of the section
+Section 2 established that according to the summary statistics, we are able to see four of the predictors might be useful in further study, although there are some deviations variability. In this section, I will suggest a recommended model through fitting to the poisson models, quasi-poisson models, and negative binomial model. Then I will make some interpretations of the recommended model and discuss some basic rationales of recommending it. Because it is a complicated process selecting the recommended model so I will list the outline of the process that would lead to this model. In addition, some discussion on alternative models will also be in this section for further improvement. Further more, the linear relationship may not always hold and it is really sensitive to outliers, so we will have a diagnostic analysis on the fitted values and predictors. Lastly, I will create a plot showing the actual versus expected prediction to see if the selected models fits very well.
+
+## Statement of the recommended model
+In this case, I will recommend negative binomial model with log-link function. With the negative binomial model with log-link function, we are able to fit the data quite well. This model includes two predictors - religion and rate of marriage. Both of these two predictors are all statistically significant which represents that they are all good estimators and predictors of the number of affairs. I will show you the fitted equation below:
+
+g(E(the number of affairs)) = 3.244 + (-0.344) * relig + (-0.518) * ratemarr
+
+## Interpretation of the model
+To help you better understand the model, I will make some interpretations on the recommended model. You can see the intercept of the model is 3.2442, in theoretical level, if we assume the religion status and rate of marriage have linear relationship with the number of affairs, when the religion level is zero, and the rate for marriage is also zero, the estimated average number of affairs is 25. But it has implication because in our data set, the smallest value is one for both predictors religion and rate of marriage. So, the interpretation on intercept will only be based on theoretical level.
+The coefficient of predictor religion is -0.344 We can interpret this coefficient as holding all other factors constant, if there is a unit increase in the religion level, the estimated average number of affairs will have a multiplicative factor of 0.709, which means that with the religion level increases, the estimated number of affairs will decrease.
+The coefficient of predictor rate of marriage is -0.44 Holding all other factors constant, if there is a unit increase in the marriage rate, the estimated average number of affairs will have a multiplicative factor of 0.644. This also indicates that with the rate of marriage increases, the estimated number of affairs will decrease, which is very reasonable.
+
+## Basic justification of the model
+I will make some basic justification of the recommended model: negative binomial model. Since the response variable is the mean number of affairs, which would be a count of affairs. In this case, we consider to use models that can use "count" as response variable. There are some "count" models such as poisson model, quasi-poisson model, and negative binomial model. We will first try poisson model then quasi-model and finally negative binomial model.
+
+### Poisson Model
+We first used the poisson model with predictors education category, kids, religion, and rate of marriage. However, there is a overdispersion on poisson model because the calculatedperson phi is much greater than 1, which means standard deviation of parameter estimates downward biased and significance of predictor variables upward biased, so that leading to invalid conclusions. To adjust the oversipersion, we need to turn to another model: quasi-poisson model. 
+```{r,echo=FALSE}
+havekids <- ifelse(affairs$kids == "1", 1, 0)
+edu.school <- ifelse(affairs$edu.cat == "grade-school",1,0) 
+fm.1 <- glm(naffairs ~ edu.cat+havekids+relig+ratemarr, #diagnostic: linear
+            data = affairs,
+            family = poisson(link = "log")) #diagnostic test
+
+affairs$fm1.mu <- predict(fm.1, type = "response")
+summary1 <- summary(fm.1)$coefficients[,c(1,2)]
+round(summary1,3)
+```
+
+```{r,echo=FALSE}
+phi.md <- fm.1$deviance / fm.1$df.residual
+phi.md <- round(phi.md,3)
+phi.pe <- sum((affairs$naffairs - affairs$fm1.mu)^2/affairs$fm1.mu)/
+  fm.1$df.residual
+phi.pe <- round(phi.pe,3)
+
+c("Pearson phi" = phi.pe,
+  "Mean Deviance phi" = phi.md)
+```
+
+
+### Quasi-Poisson model
+As mentioned above, I need to use quasi-poisson model to change the standard error to avoid overdispersion. This model only has predictors kids, religion and rate, which are all likely to be related to the response variable- number of affairs.
+```{r,echo=FALSE}
+fm.2 <- glm(naffairs ~ havekids+relig+ratemarr,
+            data = affairs,
+            family = quasipoisson(link = "log"))
+round(summary(fm.2)$coefficients[,c(1,2)],3)
+```
+
+After fitting the model, we also need to check if there is an overdispersion. I used the way of Pearson Estimator, unfortunately, the result was stills not ideal, meaning there was stil a overdispersion in quasi-poisson model. The pearson phi is 4.188372, which is still greater than 1. 
+```{r,echo=FALSE}
+phi.md2 <- fm.2$deviance / fm.2$df.residual
+phi.md2 <- round(phi.md2,3)
+phi.md2
+```
+
+
+To see how does the poisson models looks like in plot, I create a plot: actual value versus expected value plot for poisson & quasi-poisson model. However, the actual value versus expected value plot is not very ideal, there is still some distance between the actual line and expected value line.
+```{r,echo=FALSE}
+affairtbl <- table(affairs$naffairs)
+proportion <- affairtbl / sum(affairtbl)
+df1 <- data.frame(affairs = as.numeric(names(affairtbl)),
+                 freq.affairs = as.numeric(proportion))
+pp <- affairs[1:12]
+```
+
+```{r,echo=FALSE}
+mu <- predict(fm.2, type = "response")
+
+naffairs <- df1$affairs
+ep <- numeric(length(naffairs)) #store expected probs.
+j <- 1
+for(k in naffairs) {
+  ep[j] <- mean(exp(-mu) * mu^k / factorial(k))
+  j <- j + 1
+}
+df1$expected.prob.fm2 <- ep
+```
+
+```{r,warning=FALSE, echo=FALSE}
+idx <- 1:12
+p <- ggplot(data = df1[idx,],
+            mapping = aes(x = affairs,
+                          y = freq.affairs))
+p <- p + geom_line(col = "gray")
+p <- p + geom_point()
+p <- p + labs(x = "Number of Visits",
+              y = "Proportion")
+
+p <- p + geom_line(data = df1[idx,],
+                   mapping = aes(y = expected.prob.fm2),
+                   color = "purple")
+p <- p + geom_point(data = df1[idx,],
+                    mapping = aes(y = expected.prob.fm2),
+                    color = "purple")
+p <- p + annotate("text", x = 2, y = 0.30,
+                  label = "Quasi.poisson",
+                  color = "purple") + ggtitle("Actual vs. Expected Plot")
+p
+```
+
+
+### Negative binomial model
+So, I switched to the negative binomial model with predictors religion and rate of marriage because they are the only two statistically significant predictors in this model. Negative binomial is a good model to use here because it gives us more freedom to fit the variable. Still, we need to check if there is overdispersion in the negative binomial model. According to the Pearson Estimator, there is no overdispersion in this problem!
+```{r,echo=FALSE}
+fm.3 <- glm.nb(naffairs ~ relig+ratemarr,
+               data = affairs)
+round(summary(fm.3)$coefficients[,c(1,2)],3)
+phi.md3 <- fm.3$deviance / fm.3$df.residual
+phi.md3 <- round(phi.md3,3)
+phi.md3
+```
+
+
+## Outline of thought process that would lead to this model
+The response variable of the data set is count the number of affairs. In this case, poisson, quasi-poisson, and negative binomial model should be considered. Poisson model is fitted first with predictors (education category, kids, religion, and rate of marriage), but there is a overdispersion on the poisson model. To fix this problem, the data fit a quasi-poisson model. And based on the statistics data, the predictors of quasi-poisson improved by only having predictors (kids, religion, and rate of marriage) and the overdispersion problem improved a lot. However, the plot and overdispersion indicated that the expected value from the poisson and quasi-poisson model does not perform well. So, the negative binomial model is applied to the data set, with two predictors that performs well based on this model(religion and rate of marriage). The negative binomial model fits the data well, so I would like to recommend this model to the data set.
+
+## Discussion of alternative models
+The alternative model here is negative binomail model.Negative binomial regression can be used for over-dispersed count data. It can be considered as a generalization of Poisson regression since it has the same mean structure as Poisson regression and it has an extra parameter to model the over-dispersion.
+
+## Actual versus Expected comparison showing whether or not your model fits well
+After fitting the negative binomial model, I created an actual vs. expected plot. Fortunately, the negative binomial model fits quite well on the original data. Although there is some variability in some data points, the overall performance is not bad.
+```{r,echo=FALSE}
+mu2 <- predict(fm.3, type = "response")
+
+theta <- fm.3$theta # get theta value from our model
+
+f <- function(y, mu, theta) mean((gamma(theta + y) * mu^y * theta^theta)/(gamma(theta) * factorial(y) * (mu + theta)^(theta + y)))
+
+df1$expected.prob.fm3 <- map_dbl(df1$affairs, f, mu = mu, theta = theta)
+```
+
+```{r,warning=FALSE,echo=FALSE}
+p <- p + geom_line(data = df1[idx,],
+                   mapping = aes(y = expected.prob.fm3),
+                   color = "pink")
+p <- p + geom_point(data = df1[idx,],
+                   mapping = aes(y = expected.prob.fm3),
+                   color = "pink")
+p <- p + annotate("text", x = 1.5, y = 0.40,
+                  label = "Neg.Binomial",
+                  color = "pink") + ggtitle("Actual vs. Expected Plot")
+p
+```
+
+
+## Highlights of the diagnostic analysis
+To check whether our model has adequately captured the information in the data, the diagnostic analysis is conducted. The analysis includes the quantile residual plot for the model, predictors kids, religion and rate of marriage. All of them performs well although there are some variability: the residuals are evenly distributed around zero and there are no significant patterns on the plot. But I want to highlight the quantile residual plot for Model fm.3 that is shown below. We can observe that there is a little downward trend at the end of the trend line, but we should not concern it because the residuals are evenly distributed around zero. And we can conclude the model has adequately captured the information in the data.
+
+```{r,echo=FALSE,warning=FALSE}
+affairs$fm3.rQ1 <- qresid(fm.3)
+affairs$fm3.rQ2 <- qresid(fm.3)
+p <- ggplot(data = affairs,
+            mapping = aes(x = mu,
+                          y = fm3.rQ1))
+p <- p + geom_point() + geom_smooth(se = TRUE)
+p <- p + labs(x = "Fitted Values",
+              y = "Quantile Residuals",
+              title = "Quantile Residual plot for Model fm.3")
+
+q <- ggplot(data = affairs,
+            mapping = aes(x = mu,
+                          y = fm3.rQ2))
+q <- q + geom_point() + geom_smooth(se = TRUE)
+q <- q + labs(x = "Fitted Values",
+              y = "Quantile Residuals",
+              title = "Quantile Residual plot for Model fm.3")
+grid.arrange(p, q, nrow = 1)
+```
+
+```{r,echo=FALSE,warning=FALSE,fig.show='hide'}
+#havekids
+p <- ggplot(data = affairs,
+            mapping = aes(x = havekids,
+                          y = fm3.rQ1))
+p <- p + geom_point() + geom_smooth(se = TRUE)
+p <- p + labs(x = "havekids",
+              y = "Quantile Residuals",
+              title = "Quantile residual plot of havekids")
+
+q <- ggplot(data = affairs,
+            mapping = aes(x = havekids,
+                          y = fm3.rQ2))
+q <- q + geom_point() + geom_smooth(se = TRUE)
+q <- q + labs(x = "havekids",
+              y = "Quantile Residuals",
+              title = "Quantile residual plot of havekids")
+grid.arrange(p, q, nrow = 1)
+```
+
+
+```{r,echo=FALSE,warning=FALSE,fig.show='hide'}
+#relig
+p <- ggplot(data = affairs,
+            mapping = aes(x = relig,
+                          y = fm3.rQ1))
+p <- p + geom_point() + geom_smooth(se = TRUE)
+p <- p + labs(x = "relig",
+              y = "Quantile Residuals",
+              title = "Quantile residual plot of relig")
+
+q <- ggplot(data = affairs,
+            mapping = aes(x = relig,
+                          y = fm3.rQ2))
+q <- q + geom_point() + geom_smooth(se = TRUE)
+q <- q + labs(x = "relig",
+              y = "Quantile Residuals",
+              title = "Quantile residual plot of relig")
+grid.arrange(p, q, nrow = 1)
+```
+
+```{r,echo=FALSE,warning=FALSE,fig.show='hide'}
+#ratemarr
+p <- ggplot(data = affairs,
+            mapping = aes(x = ratemarr,
+                          y = fm3.rQ1))
+p <- p + geom_point() + geom_smooth(se = TRUE)
+p <- p + labs(x = "ratemarr",
+              y = "Quantile Residuals",
+              title = "Quantile residual plot of ratemarr")
+
+q <- ggplot(data = affairs,
+            mapping = aes(x = ratemarr,
+                          y = fm3.rQ2))
+q <- q + geom_point() + geom_smooth(se = TRUE)
+q <- q + labs(x = "ratemarr",
+              y = "Quantile Residuals",
+              title = "Quantile residual plot of ratemarr")
+grid.arrange(p, q, nrow = 1)
+```
+
+## check log-link function
+In addition, we also need to check if the use of log-link function in our model is adequate. A plot of working response vs. linear predictor is created for this purpose. We can observe that there is a linear trend between working response and linear predictor, which represents that it is adequate to use log-link function in this model. 
+```{r,warning=FALSE,echo=FALSE}
+affairs <- affairs %>%
+  mutate(fm3.eta = predict(fm.3, type = "link"),
+         fm3.wR  = fm3.eta + resid(fm.3, type = "working"))
+
+p <- ggplot(data = affairs,
+            mapping = aes(x = fm3.eta,
+                          y = fm3.wR))
+p <- p + geom_point() + geom_smooth(se = FALSE)
+p <- p + labs(x = "Linear Predictor",
+              y = "Working Responses",
+              title = "Working Response vs. Linear Predictor Plot")
+p
+```
+
+# Conclusions
+## Rehash your main results
+Although it is very complicated investigating what factors will lead to affairs, we still found out factors such as religion and rate of marriage might have great impact on the number of having affairs. In the report, I recommend a negative binomial model without overdispersion problem. This study was based on 601 individual people who filled out the whole surveys. Although this is not a large data set, the data set is informative enough to allow us to develop statistical models. 
+
+## Limitations of your analysis
+However, there is still some implications: it should be noticed that the representitiveness of this data set is not ideal. Since the records are not randomly selected and there might be some regularity that will affect the accuracy of the result. In addition, some predictors have some potential on influencing the number of affairs, but maybe because of the small sample size or sample represensitiveness, the model does not show the potentials.
+
+## Ideas about how to improve your analysis
+To promote the accuracy of the model accuracy and for better prediction, we might consider adding more variables that might be related to the number of affairs such as region, school attended, among others. In addition, we can also add more samples but with more randomness. For example, we can ask the people who filled out the surveys but did not finished all of the information to completed the whole surveys, so that the analysis will be much better based on greater sample size. 
+
+
